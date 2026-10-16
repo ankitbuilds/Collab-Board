@@ -1,17 +1,24 @@
 import dotenv from "dotenv";
+dotenv.config();
+
 import app from "./app";
 import connectDB from "./config/db";
 
-dotenv.config();
+const PORT = process.env.PORT || 5000;
 
-const PORT = process.env.PORT||5000;
+const startServer = async (): Promise<void> => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET is missing from .env");
+  }
 
-const startServer = async(): Promise<void> =>{
-    await connectDB();
-    app.listen(PORT,()=>{
-    console.log(`server is running at ${PORT}`)
-    })
+  await connectDB();
+
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
 };
 
-startServer();
-
+startServer().catch((error: unknown) => {
+  console.error("Failed to start server:", error);
+  process.exit(1);
+});
