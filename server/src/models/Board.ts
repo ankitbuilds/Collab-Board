@@ -4,7 +4,9 @@ export interface IBoard extends Document{
     name: String,
     roomId: string,
     owner: Types.ObjectId,
-    participants: Types.ObjectId[]
+    participants: Types.ObjectId[],
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 const boardSchema = new Schema<IBoard>(
