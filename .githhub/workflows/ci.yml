@@ -1,71 +1,73 @@
+
 name: CollabBoard CI
 
 on:
   push:
     branches:
-      -master
-      -main
-      -feature/frontend-dashboard
-  pull_requests:
+      - main
+      - master
+      - "feature/**"
+
+  pull_request:
     branches:
-      -master
-      -main
+      - main
+      - master
+
+  workflow_dispatch:
+
 permissions:
   contents: read
 
 jobs:
   frontend:
-     name: Frontend lint and build
-     runs-on: ubuntu-latest
+    name: Frontend lint and build
+    runs-on: ubuntu-latest
 
-     defaults:
-       run:
-         working-directory: client
+    defaults:
+      run:
+        working-directory: client
 
-     steps:
-       -name: checkout code
-       uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-       -name: Setup nodejs
-       uses: actions/setup-node@v4
-       with:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
           node-version: 22
           cache: npm
           cache-dependency-path: client/package-lock.json
 
-      -name: Install dependencies
-      run: npm run ci
-
-      -name: Run ESLint
-      run: npm run lint
-
-      -name: Build Frontend
-      run: npm run build
-
-  backend:
-     name: Backend Typescript Build
-     runs-on: ubuntu-latest
-
-     defaults: 
-       run:
-         working-directories: server
-
-       steps:
-         -name: checkout code
-         uses: actions/setup-node@v4
-
-         -name: Setup Node.js
-         uses: actions/setup-node@v4
-         with:
-           node-versions: 22
-           cache: npm
-           cache-dependency-path: server/package-lock.json
-
-        -name: Install dependencies
+      - name: Install dependencies
         run: npm ci
 
-        -name: Build Backend
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Build frontend
         run: npm run build
 
+  backend:
+    name: Backend TypeScript build
+    runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: server
 
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build backend
+        run: npm run build
