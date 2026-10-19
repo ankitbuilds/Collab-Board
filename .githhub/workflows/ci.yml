@@ -5,6 +5,7 @@ on:
     branches:
       -master
       -main
+      -feature/frontend-dashboard
   pull_requests:
     branches:
       -master
