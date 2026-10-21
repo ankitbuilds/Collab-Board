@@ -7,7 +7,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
 
-  const testNumber: number = "This should fail";
+  
   return (
     <BrowserRouter>
       <Routes>
