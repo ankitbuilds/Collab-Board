@@ -1,0 +1,29 @@
+
+name: Production Smoke Test
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  health-check:
+    name: Check Render API health
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check production health endpoint
+        env:
+          RENDER_API_URL: ${{ vars.RENDER_API_URL }}
+        run: |
+          if [ -z "$RENDER_API_URL" ]; then
+            echo "RENDER_API_URL repository variable is missing"
+            exit 1
+          fi
+
+          curl --fail --silent --show-error \
+            --max-time 30 \
+            "$RENDER_API_URL/health"
