@@ -27,7 +27,7 @@ export default function Register(){
     };
     return(
         <main>
-            <h1>Register</h1>
+            <h1>Register Yourself in Collab Board</h1>
             <form onSubmit={handleSubmit}>
                 <input
                 type="text"
