@@ -2,14 +2,18 @@ import dotenv from "dotenv";
 dotenv.config();
 import app from "./app";
 import connectDB from "./config/db";
+import mongoose from "mongoose";
 
 const PORT = process.env.PORT || 5000;
 
 
 app.get("/health", (_req, res) => {
-  res.status(200).json({
-    status: "ok",
+  const dbConnected = mongoose.connection.readyState === 1;
+
+  res.status(dbConnected ? 200 : 503).json({
+    status: dbConnected ? "ok" : "degraded",
     service: "CollabBoard API",
+    database: dbConnected ? "connected" : "disconnected",
   });
 });
 const startServer = async (): Promise<void> => {
