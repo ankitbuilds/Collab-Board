@@ -5,6 +5,13 @@ import connectDB from "./config/db";
 
 const PORT = process.env.PORT || 5000;
 
+
+app.get("/health", (_req, res) => {
+  res.status(200).json({
+    status: "ok",
+    service: "CollabBoard API",
+  });
+});
 const startServer = async (): Promise<void> => {
   if (!process.env.JWT_SECRET) {
     throw new Error("JWT_SECRET is missing from .env");
