@@ -13,16 +13,24 @@ export default function Register(){
         event.preventDefault();
         setError("");
 
+        const trimmedName = name.trim();
+        const trimmedEmail = email.trim();
+
+        if (!trimmedName || !trimmedEmail || password.length < 8) {
+            setError("Please enter a valid name, email, and at least 8 characters for the password.");
+            return;
+        }
+
         try{
             const response = await api.post("/auth/register",{
-                name,
-                email,
+                name: trimmedName,
+                email: trimmedEmail,
                 password
             });
             localStorage.setItem("token", response.data.token);
             navigate("/dashboard",{replace: true});
         }catch(error){
-            setError("Registration failed. Checked your details")
+            setError("Registration failed. Check your details")
         }
     };
     return(
@@ -37,13 +45,13 @@ export default function Register(){
                 required/>
 
                 <input
-                type="text"
+                type="email"
                 value={email}
                 placeholder="Enter your email"
                 onChange={(event)=>setEmail(event.target.value)}
                 required/>
                 <input
-                type="text"
+                type="password"
                 value={password}
                 placeholder="Enter your password"
                 onChange={(event)=>setPassword(event.target.value)}
