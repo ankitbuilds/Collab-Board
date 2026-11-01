@@ -19,7 +19,7 @@ export const register = async(
             });
             return;
         }
-        if(password.length<0){
+        if(password.length < 8){
             res.status(400).json({
                 message: "password must be at least 8 characters"
             });

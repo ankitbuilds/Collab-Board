@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Whiteboard from "./components/Whiteboard";
 
 export default function App() {
 
@@ -16,6 +17,10 @@ export default function App() {
 
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
+           <Route
+            path="/board/:roomId"
+            element={<Whiteboard />}
+          />
         </Route>
 
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
