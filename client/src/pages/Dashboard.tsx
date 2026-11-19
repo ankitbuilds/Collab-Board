@@ -20,7 +20,7 @@ export default function Dashboard() {
       setError("");
 
       const response = await api.get<BoardResponse>("/boards");
-      setBoards(response.data.boards);
+      setBoards(response.data.boards ?? []);
     } catch {
       setError("Unable to load boards. Please log in again.");
     } finally {

@@ -1,11 +1,17 @@
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import api from "../services/api";
+import type { BoardResponse } from "../types/board";
 import "./Whiteboard.css";
 
 type Tool = "pen" | "eraser";
 
-function Whiteboard() {
+export default function Whiteboard() {
+    const { roomId } = useParams<{ roomId: string }>();
+    const navigate = useNavigate();
+
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const isDrawing = useRef(false);
 
@@ -13,15 +19,62 @@ function Whiteboard() {
     const [color, setColor] = useState("#2563eb");
     const [brushSize, setBrushSize] = useState(4);
 
+    const [board, setBoard] = useState<BoardResponse["board"]>();
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    // Fetch board details when the room ID changes.
+    useEffect(() => {
+        if (!roomId) {
+            setError("Invalid board room ID");
+            setLoading(false);
+            return;
+        }
+
+        let cancelled = false;
+
+        const loadBoard = async () => {
+            try {
+                setLoading(true);
+                setError("");
+
+                const response = await api.get<BoardResponse>(
+                    `/boards/${encodeURIComponent(roomId)}`
+                );
+
+                if (!cancelled) {
+                    setBoard(response.data.board);
+                }
+            } catch {
+                if (!cancelled) {
+                    setError("Unable to load board. Check your access.");
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        void loadBoard();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [roomId]);
+
     const getCanvasPosition = (
         event: ReactPointerEvent<HTMLCanvasElement>
     ) => {
         const canvas = canvasRef.current!;
+
         const rect = canvas.getBoundingClientRect();
 
         return {
-            x: (event.clientX - rect.left) * (canvas.width / rect.width),
-            y: (event.clientY - rect.top) * (canvas.height / rect.height),
+            x: (event.clientX - rect.left) *
+                (canvas.width / rect.width),
+            y: (event.clientY - rect.top) *
+                (canvas.height / rect.height),
         };
     };
 
@@ -44,8 +97,11 @@ function Whiteboard() {
 
         context.lineCap = "round";
         context.lineJoin = "round";
-        context.strokeStyle = tool === "eraser" ? "#ffffff" : color;
-        context.lineWidth = tool === "eraser" ? brushSize * 4 : brushSize;
+        context.globalCompositeOperation =
+            tool === "eraser" ? "destination-out" : "source-over";
+        context.strokeStyle = color;
+        context.lineWidth =
+            tool === "eraser" ? brushSize * 4 : brushSize;
 
         context.lineTo(x + 0.1, y + 0.1);
         context.stroke();
@@ -80,9 +136,32 @@ function Whiteboard() {
         context.clearRect(0, 0, canvas.width, canvas.height);
     };
 
+    if (loading) {
+        return <p>Loading board...</p>;
+    }
+
+    if (error || !board) {
+        return (
+            <main>
+                <p role="alert">{error || "Board not found"}</p>
+                <button onClick={() => navigate("/dashboard")}>
+                    Back to Dashboard
+                </button>
+            </main>
+        );
+    }
+
     return (
-        <div>
-            <div>
+        <main className="whiteboard-container">
+            <header>
+                <h1>{board.name}</h1>
+                <p>Room ID: {board.roomId}</p>
+                <button onClick={() => navigate("/dashboard")}>
+                    Back to Dashboard
+                </button>
+            </header>
+
+            <section className="whiteboard-toolbar">
                 <button
                     type="button"
                     onClick={() => setTool("pen")}
@@ -125,7 +204,7 @@ function Whiteboard() {
                 <button type="button" onClick={clearCanvas}>
                     Clear canvas
                 </button>
-            </div>
+            </section>
 
             <canvas
                 ref={canvasRef}
@@ -138,8 +217,6 @@ function Whiteboard() {
                 onPointerCancel={stopDrawing}
                 onLostPointerCapture={stopDrawing}
             />
-        </div>
+        </main>
     );
 }
-
-export default Whiteboard;
