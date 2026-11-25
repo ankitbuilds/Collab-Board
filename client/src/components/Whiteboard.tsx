@@ -5,8 +5,26 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import type { BoardResponse } from "../types/board";
 import "./Whiteboard.css";
+import axios from "axios";
 
 type Tool = "pen" | "eraser";
+type Point = {
+    x: number;
+    y: number;
+};
+type StrokeData = {
+    points: Point[];
+    color: string;
+    brushSize: number;
+    tool: "pen" | "eraser";
+}
+type SavedElement = {
+    id: String;
+    type: "line";
+    data: StrokeData;
+    createdBy: string;
+
+}
 
 export default function Whiteboard() {
     const { roomId } = useParams<{ roomId: string }>();
@@ -22,6 +40,86 @@ export default function Whiteboard() {
     const [board, setBoard] = useState<BoardResponse["board"]>();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+
+    const [elements, setElements] = useState<SavedElement[]>([]);
+
+    const currentStroke = useRef<StrokeData | null>(null);
+
+    useEffect(() => {
+        if (!board?.roomId) return;
+
+        let cancelled = false;
+
+        const loadElements = async () => {
+            try {
+                const response = await api.get<{
+                    elements: SavedElement[];
+                }>(`/boards/${encodeURIComponent(board.roomId)}/elements`);
+
+                if (!cancelled) {
+                    setElements(response.data.elements);
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    setError("Unable to load saved drawings.");
+                }
+                console.error("Load drawings error:", error);
+            }
+        };
+
+        void loadElements();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [board?.roomId]);
+
+
+
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const context = canvas.getContext("2d");
+        if (!context) return;
+
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        elements.forEach((element) => {
+            const { points, color, brushSize, tool } = element.data;
+
+            if (!points || points.length === 0) return;
+
+            context.beginPath();
+            context.lineCap = "round";
+            context.lineJoin = "round";
+
+            context.strokeStyle = color;
+            context.lineWidth =
+                tool === "eraser" ? brushSize * 4 : brushSize;
+
+            context.globalCompositeOperation =
+                tool === "eraser" ? "destination-out" : "source-over";
+
+            context.moveTo(points[0].x, points[0].y);
+
+            points.slice(1).forEach((point) => {
+                context.lineTo(point.x, point.y);
+            });
+
+            if (points.length === 1) {
+                context.lineTo(
+                    points[0].x + 0.1,
+                    points[0].y + 0.1
+                );
+            }
+
+            context.stroke();
+        });
+
+        context.globalCompositeOperation = "source-over";
+    }, [elements]);
 
     // Fetch board details when the room ID changes.
     useEffect(() => {
@@ -92,6 +190,13 @@ export default function Whiteboard() {
 
         const { x, y } = getCanvasPosition(event);
 
+        currentStroke.current = {
+            points: [{ x, y }],
+            color,
+            brushSize,
+            tool,
+        };
+
         context.beginPath();
         context.moveTo(x, y);
 
@@ -108,7 +213,7 @@ export default function Whiteboard() {
     };
 
     const draw = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-        if (!isDrawing.current) return;
+        if (!isDrawing.current || !currentStroke.current) return;
 
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -118,12 +223,53 @@ export default function Whiteboard() {
 
         const { x, y } = getCanvasPosition(event);
 
+        currentStroke.current.points.push({ x, y });
+
         context.lineTo(x, y);
         context.stroke();
     };
 
-    const stopDrawing = () => {
+    const stopDrawing = async () => {
+        if (!isDrawing.current) return;
+
         isDrawing.current = false;
+
+        const stroke = currentStroke.current;
+        currentStroke.current = null;
+
+        if (!stroke || !board?.roomId) return;
+
+        try {
+            const response = await api.post<{
+                element: SavedElement;
+            }>(
+                `/boards/${encodeURIComponent(board.roomId)}/elements`,
+                {
+                    type: "line",
+                    data: stroke,
+                }
+            );
+
+            setElements((previous) => [
+                ...previous,
+                response.data.element,
+            ]);
+        } catch (error: unknown) {
+            if (axios.isAxiosError(error)) {
+                console.error("Save drawing failed:", {
+                    status: error.response?.status,
+                    response: error.response?.data,
+                });
+
+                setError(
+                    error.response?.data?.message ||
+                    "Drawing could not be saved."
+                );
+            } else {
+                console.error("Unexpected drawing error:", error);
+                setError("Something went wrong while saving.");
+            }
+        }
     };
 
     const clearCanvas = () => {
@@ -215,7 +361,9 @@ export default function Whiteboard() {
                 onPointerMove={draw}
                 onPointerUp={stopDrawing}
                 onPointerCancel={stopDrawing}
-                onLostPointerCapture={stopDrawing}
+                onLostPointerCapture={() => {
+                    isDrawing.current = false;
+                }}
             />
         </main>
     );

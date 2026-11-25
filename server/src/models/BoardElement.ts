@@ -1,40 +1,46 @@
-import mongoose, {Document,Schema, Types} from "mongoose";
 
-export interface IBoardElement extends Document{
-    board: Types.ObjectId,
-    type: "line"|"rectangle"|"circle"|"text",
-    data: Record<string, unknown>,
-    createdBy: Types.ObjectId,
+import mongoose, { Document, Schema, Types } from "mongoose";
 
+export interface IBoardElement extends Document {
+    board: Types.ObjectId;
+    type: "line" | "rectangle" | "circle" | "text";
+    data: Record<string, unknown>;
+    createdBy: Types.ObjectId;
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 const boardElementSchema = new Schema<IBoardElement>(
     {
-        board:{
+        board: {
             type: Schema.Types.ObjectId,
-            ref:"board",
+            ref: "Board",
             required: true,
+            index: true,
         },
-        type:{
+        type: {
             type: String,
             enum: ["line", "rectangle", "circle", "text"],
             required: true,
-
         },
-        data:{
-            type:Schema.Types.Mixed,
-            required: true
+        data: {
+            type: Schema.Types.Mixed,
+            required: true,
         },
-        createdBy:{
+        createdBy: {
             type: Schema.Types.ObjectId,
-            required: true
-        }
-
-
+            ref: "User",
+            required: true,
+        },
     },
     {
         timestamps: true,
     }
 );
-const BoardElement = mongoose.model<IBoardElement>("BoardElement", boardElementSchema);
+
+const BoardElement = mongoose.model<IBoardElement>(
+    "BoardElement",
+    boardElementSchema
+);
+
 export default BoardElement;
